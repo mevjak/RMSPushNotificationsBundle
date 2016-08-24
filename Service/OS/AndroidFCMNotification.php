@@ -102,22 +102,13 @@ class AndroidFCMNotification implements OSNotificationServiceInterface
             $message->getFCMOptions(),
             array("data" => $message->getData())
         );
-        
+
         // Perform the calls (in parallel)
         $this->responses = array();
-        $fcmIdentifiers = $message->getFCMIdentifiers();
 
-        if (count($message->getFCMIdentifiers()) == 1) {
-            $data['to'] = $fcmIdentifiers[0];
+        foreach($message->getFCMIdentifiers() as $identifier){
+            $data['to'] = $identifier;
             $this->responses[] = $this->browser->post($this->apiURL, $headers, json_encode($data));
-        } else {
-            // Chunk number of registration IDs according to the maximum allowed by FCM
-            $chunks = array_chunk($message->getFCMIdentifiers(), $this->registrationIdMaxCount);
-
-            foreach ($chunks as $registrationIDs) {
-                $data['registration_ids'] = $registrationIDs;
-                $this->responses[] = $this->browser->post($this->apiURL, $headers, json_encode($data));
-            }
         }
 
         // If we're using multiple concurrent connections via MultiCurl
