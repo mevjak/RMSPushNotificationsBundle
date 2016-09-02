@@ -99,7 +99,7 @@ class AndroidFCMNotification implements OSNotificationServiceInterface
             "Content-Type: application/json",
         );
         $data = array_merge(
-            $message->getFCMOptions(),
+            array("notification" => $message->getFCMOptions()),
             array("data" => $message->getData())
         );
 
@@ -108,6 +108,8 @@ class AndroidFCMNotification implements OSNotificationServiceInterface
 
         foreach($message->getFCMIdentifiers() as $identifier){
             $data['to'] = $identifier;
+            $data['content_available'] = true;
+            $data['priority'] = 'high';
             $this->responses[] = $this->browser->post($this->apiURL, $headers, json_encode($data));
         }
 
@@ -146,4 +148,5 @@ class AndroidFCMNotification implements OSNotificationServiceInterface
     {
         return $this->responses;
     }
+
 }
