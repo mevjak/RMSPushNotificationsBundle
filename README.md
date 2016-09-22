@@ -9,7 +9,7 @@ To use this bundle in your Symfony2 project add the following to your `composer.
     {
         "require": {
             // ...
-            "richsage/rms-push-notifications-bundle": "dev-master"
+            "opwoco/rms-push-notifications-bundle": "dev-master"
         }
     }
 
