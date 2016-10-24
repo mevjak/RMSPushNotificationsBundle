@@ -1,6 +1,7 @@
 {
     "name": "opwoco/rms-push-notifications-bundle",
     "type": "symfony-bundle",
+    "version": "1.0.0",
     "description": "Push notifications/messages for mobile devices",
     "keywords": ["push", "notification", "bundle", "gcm", "fcm", "c2dm", "ios", "apns", "blackberry", "mpns", "windowsphone"],
     "homepage": "https://github.com/richsage/RMSPushNotificationsBundle",
@@ -26,10 +27,5 @@
     "autoload": {
         "psr-0": { "RMS\\PushNotificationsBundle": "" }
     },
-    "target-dir": "RMS/PushNotificationsBundle",
-    "extra": {
-        "branch-alias": {
-            "dev-master": "0.2.x-dev"
-        }
-    }
+    "target-dir": "RMS/PushNotificationsBundle"
 }
