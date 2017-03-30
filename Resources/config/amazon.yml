@@ -1,0 +1,7 @@
+parameters:
+    scheme: 'https'
+    host: 'api.amazon.com'
+    access_token_endpoint: 'auth/o2/token'
+    send_message_endpoint: 'messaging/registrations/%s/messages'
+    scope: 'messaging:push'
+    grant_type: 'client_credentials'
