@@ -94,6 +94,17 @@ class RMSPushNotificationsExtension extends Extension
         $password = $config["android"]["password"];
         $source = $config["android"]["source"];
         $timeout = $config["android"]["timeout"];
+
+        // ADM
+        $this->container->setParameter("rms_push_notifications.android.adm.enabled", true);
+
+        if (isset($config["android"]["adm"])) {
+            $clientId = $config["android"]["adm"]["client_id"];
+            $clientSecret = $config["android"]["adm"]["client_secret"];
+            $this->container->setParameter("rms_push_notifications.android.adm.client_id", $clientId);
+            $this->container->setParameter("rms_push_notifications.android.adm.client_secret", $clientSecret);
+        }
+
         if (isset($config["android"]["c2dm"])) {
             $username = $config["android"]["c2dm"]["username"];
             $password = $config["android"]["c2dm"]["password"];
@@ -126,15 +137,6 @@ class RMSPushNotificationsExtension extends Extension
             $this->container->setParameter("rms_push_notifications.android.fcm.use_multi_curl", $config["android"]["fcm"]["use_multi_curl"]);
         }
 
-        // ADM
-        $this->container->setParameter("rms_push_notifications.android.adm.enabled", true);
-
-        if (isset($config["android"]["amazon"])) {
-            $clientId = $config["android"]["amazon"]["client_id"];
-            $clientSecret = $config["android"]["amazon"]["client_secret"];
-            $this->container->setParameter("rms_push_notifications.android.adm.client_id", $clientId);
-            $this->container->setParameter("rms_push_notifications.android.adm.client_secret", $clientSecret);
-        }
     }
 
     /**

@@ -36,6 +36,8 @@ only be available if you provide configuration respectively for them.
     rms_push_notifications:
       android:
           timeout: 5 # Seconds to wait for connection timeout, default is 5
+          adm:
+              
           c2dm:
               username: <string_android_c2dm_username>
               password: <string_android_c2dm_password>

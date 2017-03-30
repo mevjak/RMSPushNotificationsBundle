@@ -51,13 +51,19 @@ class Configuration implements ConfigurationInterface
                         scalarNode("username")->defaultValue("")->end()->
                         scalarNode("password")->defaultValue("")->end()->
                         scalarNode("source")->defaultValue("")->end()->
-
                         arrayNode("c2dm")->
                             canBeUnset()->
                             children()->
                                 scalarNode("username")->isRequired()->end()->
                                 scalarNode("password")->isRequired()->end()->
                                 scalarNode("source")->defaultValue("")->end()->
+                            end()->
+                        end()->
+                        arrayNode("adm")->
+                            canBeUnset()->
+                            children()->
+                                scalarNode("client_id")->isRequired()->end()->
+                                scalarNode("client_secret")->isRequired()->end()->
                             end()->
                         end()->
                         arrayNode("gcm")->
