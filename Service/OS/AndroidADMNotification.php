@@ -10,7 +10,7 @@ use RMS\PushNotificationsBundle\Message\MessageInterface;
 use Buzz\Browser;
 use RMS\PushNotificationsBundle\Model\AccessToken;
 
-class AmazonNotification implements OSNotificationServiceInterface {
+class AndroidADMNotification implements OSNotificationServiceInterface {
 
     /**
      * @var Browser
