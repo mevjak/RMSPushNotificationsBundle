@@ -2,6 +2,7 @@
 
 namespace RMS\PushNotificationsBundle\DependencyInjection;
 
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension,
     Symfony\Component\DependencyInjection\ContainerBuilder,
     Symfony\Component\DependencyInjection\Loader\XmlFileLoader,
@@ -32,15 +33,21 @@ class RMSPushNotificationsExtension extends Extension
         $this->kernelRootDir = $container->getParameterBag()->get("kernel.root_dir");
 
         $loader = new XmlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
+
         $loader->load('services.xml');
+
+        $ymlLoader = new YamlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
+        $ymlLoader->load('services.yml');
 
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
         $this->setInitialParams();
+
         if (isset($config["android"])) {
             $this->setAndroidConfig($config);
             $loader->load('android.xml');
+            $ymlLoader->load('amazon.yml');
         }
         if (isset($config["ios"])) {
             $this->setiOSConfig($config);
@@ -58,6 +65,7 @@ class RMSPushNotificationsExtension extends Extension
             $this->setWindowsphoneConfig($config);
             $loader->load('windowsphone.xml');
         }
+
     }
 
     /**
@@ -69,6 +77,7 @@ class RMSPushNotificationsExtension extends Extension
         $this->container->setParameter("rms_push_notifications.ios.enabled", false);
         $this->container->setParameter("rms_push_notifications.mac.enabled", false);
     }
+    
 
     /**
      * Sets Android config into container
@@ -115,6 +124,16 @@ class RMSPushNotificationsExtension extends Extension
         if (isset($config["android"]["fcm"])) {
             $this->container->setParameter("rms_push_notifications.android.fcm.api_key", $config["android"]["fcm"]["api_key"]);
             $this->container->setParameter("rms_push_notifications.android.fcm.use_multi_curl", $config["android"]["fcm"]["use_multi_curl"]);
+        }
+
+        // ADM
+        $this->container->setParameter("rms_push_notifications.android.adm.enabled", true);
+
+        if (isset($config["android"]["amazon"])) {
+            $clientId = $config["android"]["amazon"]["client_id"];
+            $clientSecret = $config["android"]["amazon"]["client_secret"];
+            $this->container->setParameter("rms_push_notifications.android.adm.client_id", $clientId);
+            $this->container->setParameter("rms_push_notifications.android.adm.client_secret", $clientSecret);
         }
     }
 
