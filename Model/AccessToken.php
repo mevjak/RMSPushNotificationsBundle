@@ -4,6 +4,7 @@ namespace RMS\PushNotificationsBundle\Model;
 
 use Buzz\Message\Response;
 use Gedmo\Timestampable\Traits\Timestampable;
+use Symfony\Component\Validator\Constraints\DateTime;
 
 class AccessToken
 {
@@ -27,16 +28,16 @@ class AccessToken
     /**
      * @var string
      */
-    protected $tokenType;
+    protected $type;
 
     public function __construct($response = null)
     {
         if($response instanceof Response) {
             $content = json_decode($response->getContent());
-            $this->token = $content->token;
-            $this->expiresIn = $content->expiresIn;
+            $this->token = $content->access_token;
+            $this->setExpiresIn($content->expires_in);
             $this->scope = $content->scope;
-            $this->tokenType = $content->tokenType;
+            $this->type = $content->token_type;
         }
     }
 
@@ -81,7 +82,28 @@ class AccessToken
     public function setExpiresIn($expiresIn)
     {
         $this->expiresIn = $expiresIn;
+        $dateTime = new \DateTime();
+        $dateTime->modify(sprintf('+%s seconds', $this->expiresIn));
+        $this->setUpdatedAt($dateTime);
         return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isExpired() {
+        if(!$this->getExpiresIn()) {
+            return true;
+        }
+
+        $currentDateTime = new \DateTime();
+        // secure dateTime if the processing time to send a new push messages takes to long
+        $currentDateTime->modify('-5 minutes');
+        if($currentDateTime >= $this->getUpdatedAt()) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -107,24 +129,24 @@ class AccessToken
     }
 
     /**
-     * Get tokenType
+     * Get type
      *
      * @return string
      */
-    public function getTokenType()
+    public function getType()
     {
-        return $this->tokenType;
+        return $this->type;
     }
 
     /**
-     * Set tokenType
+     * Set type
      *
-     * @param $tokenType
+     * @param $type
      * @return $this
      */
-    public function setTokenType($tokenType)
+    public function setType($type)
     {
-        $this->tokenType = $tokenType;
+        $this->type = $type;
         return $this;
     }
 
