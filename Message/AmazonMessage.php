@@ -5,42 +5,12 @@ namespace RMS\PushNotificationsBundle\Message;
 use RMS\PushNotificationsBundle\Device\Types;
 use RMS\PushNotificationsBundle\Model\AccessToken;
 
-class AmazonMessage implements MessageInterface
+class AmazonMessage extends AndroidMessage
 {
-    const DEFAULT_COLLAPSE_KEY = 1;
-
     /**
      * @var AccessToken
      */
     protected $accessToken;
-
-    /**
-     * String message
-     *
-     * @var string
-     */
-    protected $message = "";
-
-    /**
-     * The data to send in the message
-     *
-     * @var array
-     */
-    protected $data = array();
-
-    /**
-     * Identifier of the target device
-     *
-     * @var string
-     */
-    protected $identifier = "";
-
-    /**
-     * Collapse key for data
-     *
-     * @var int
-     */
-    protected $consolidationKey = self::DEFAULT_COLLAPSE_KEY;
 
     /**
      * @var integer
@@ -75,46 +45,6 @@ class AmazonMessage implements MessageInterface
     }
 
     /**
-     * Sets the string message
-     *
-     * @param $message
-     */
-    public function setMessage($message)
-    {
-        $this->message = $message;
-    }
-
-    /**
-     * Returns the string message
-     *
-     * @return string
-     */
-    public function getMessage()
-    {
-        return $this->message;
-    }
-
-    /**
-     * Sets the data. For Android, this is any custom data to use
-     *
-     * @param array $data The custom data to send
-     */
-    public function setData($data)
-    {
-        $this->data = (is_array($data) ? $data : array($data));
-    }
-
-    /**
-     * Returns any custom data
-     *
-     * @return array
-     */
-    public function getData()
-    {
-        return array_merge(array('message' => $this->getMessage()), $this->data);
-    }
-
-    /**
      * Gets the message body to send
      * This is primarily used in C2DM
      *
@@ -123,61 +53,29 @@ class AmazonMessage implements MessageInterface
     public function getMessageBody()
     {
         $data = array(
-            'data' => $this->getMessage(),    // The client ID assigned to you by the provider
-            'consolidationKey' => $this->getConsolidationKey(),   // The client password assigned to you by the provider
-            'expiresAfter' => $this->getExpiresAfter(),
-            'md5' => $this->getMd5()
+            'data' => array(
+                'message' => $this->getMessage()
+            )
         );
 
         if (!empty($this->data)) {
-            $data = array_merge($data, $this->data);
+            $dataArray = array_merge($data['data'], $this->data);
+            $data['data'] = $dataArray;
+        }
+
+        if($this->getCollapseKey() && is_string($this->getCollapseKey())) {
+            $data['consolidationKey'] = $this->getCollapseKey();
+        }
+
+        if($this->getMd5() && is_string($this->getMd5())) {
+            $data['md5'] = $this->getMd5();
+        }
+
+        if($this->getExpiresAfter() && is_integer($this->getExpiresAfter())) {
+            $data['expiresAfter'] = $this->getExpiresAfter();
         }
 
         return $data;
-    }
-
-    /**
-     * Sets the identifier of the target device, eg UUID or similar
-     *
-     * @param $identifier
-     */
-    public function setDeviceIdentifier($identifier)
-    {
-        $this->identifier = $identifier;
-        $this->allIdentifiers = array($identifier => $identifier);
-    }
-
-
-    /**
-     * Returns the target device identifier
-     *
-     * @return string
-     */
-    public function getDeviceIdentifier()
-    {
-        return $this->identifier;
-    }
-
-    /**
-     * Get consolidationKey
-     *
-     * @return int
-     */
-    public function getConsolidationKey()
-    {
-        return $this->consolidationKey;
-    }
-
-    /**
-     * Set consolidationKey
-     *
-     * @param $consolidationKey
-     * @return $this
-     */
-    public function setConsolidationKey($consolidationKey)
-    {
-        $this->consolidationKey = $consolidationKey;
-        return $this;
     }
 
     /**

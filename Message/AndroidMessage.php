@@ -2,6 +2,7 @@
 
 namespace RMS\PushNotificationsBundle\Message;
 
+use opwoco\Components\PushserverBundle\Factory\AndroidNotificationServiceFactory;
 use RMS\PushNotificationsBundle\Device\Types;
 
 class AndroidMessage implements MessageInterface
@@ -37,20 +38,6 @@ class AndroidMessage implements MessageInterface
     protected $collapseKey = self::DEFAULT_COLLAPSE_KEY;
 
     /**
-     * Whether this is a GCM message
-     *
-     * @var bool
-     */
-    protected $isGCM = false;
-
-    /**
-     * Whether this is a FCM message
-     *
-     * @var bool
-     */
-    protected $isFCM = false;
-
-    /**
      * A collection of device identifiers that the message
      * is intended for. GCM use only
      *
@@ -59,18 +46,16 @@ class AndroidMessage implements MessageInterface
     protected $allIdentifiers = array();
 
     /**
-     * Options for GCM messages
+     * Options for messages
      *
      * @var array
      */
-    protected $gcmOptions = array();
+    protected $options = array();
 
     /**
-     * Options for FCM messages
-     *
-     * @var array
+     * @var string
      */
-    protected $fcmOptions = array();
+    protected $cloudMessagingService;
 
     /**
      * Sets the string message
@@ -80,6 +65,7 @@ class AndroidMessage implements MessageInterface
     public function setMessage($message)
     {
         $this->message = $message;
+        return $this;
     }
 
     /**
@@ -100,6 +86,7 @@ class AndroidMessage implements MessageInterface
     public function setData($data)
     {
         $this->data = (is_array($data) ? $data : array($data));
+        return $this;
     }
 
     /**
@@ -125,6 +112,7 @@ class AndroidMessage implements MessageInterface
             "collapse_key"    => $this->collapseKey,
             "data.message"    => $this->message,
         );
+
         if (!empty($this->data)) {
             $data = array_merge($data, $this->data);
         }
@@ -150,9 +138,22 @@ class AndroidMessage implements MessageInterface
      */
     public function getTargetOS()
     {
-        if($this->isGCM) return Types::OS_ANDROID_GCM;
-        if($this->isFCM) return Types::OS_ANDROID_FCM;
-        return Types::OS_ANDROID_C2DM;
+        switch($this->getCloudMessagingService()) {
+            case AndroidNotificationServiceFactory::COULD_MESSAGING_SERIVCE_TYPE_ADM:
+                $type = Types::OS_ANDROID_ADM;
+                break;
+            case AndroidNotificationServiceFactory::COULD_MESSAGING_SERIVCE_TYPE_FCM:
+                $type = Types::OS_ANDROID_FCM;
+                break;
+            case AndroidNotificationServiceFactory::COULD_MESSAGING_SERIVCE_TYPE_GCM:
+                $type = Types::OS_ANDROID_GCM;
+                break;
+            default:
+                $type = Types::OS_ANDROID_C2DM;
+                break;
+        }
+
+        return $type;
     }
 
     /**
@@ -188,54 +189,11 @@ class AndroidMessage implements MessageInterface
     }
 
     /**
-     * Set whether this is a GCM message
-     * (default false)
-     *
-     * @param $gcm
-     */
-    public function setGCM($gcm)
-    {
-        $this->isGCM = !!$gcm;
-    }
-
-    /**
-     * Returns whether this is a GCM message
-     *
-     * @return mixed
-     */
-    public function isGCM()
-    {
-        return $this->isGCM;
-    }
-
-    /**
-     * Set whether this is a FCM message
-     * (default false)
-     *
-     * @param $fcm
-     */
-    public function setFCM($fcm)
-    {
-        $this->isFCM = !!$fcm;
-    }
-
-    /**
-     * Returns whether this is a FCM message
-     *
-     * @return mixed
-     */
-    public function isFCM()
-    {
-        return $this->isFCM;
-    }
-
-    /**
      * Returns an array of device identifiers
-     * Not used in C2DM
      *
      * @return mixed
      */
-    public function getGCMIdentifiers()
+    public function getIdentifiers()
     {
         return array_values($this->allIdentifiers);
     }
@@ -244,27 +202,7 @@ class AndroidMessage implements MessageInterface
      * Adds a device identifier to the GCM list
      * @param string $identifier
      */
-    public function addGCMIdentifier($identifier)
-    {
-        $this->allIdentifiers[$identifier] = $identifier;
-    }
-
-    /**
-     * Returns an array of device identifiers
-     * Not used in C2DM
-     *
-     * @return mixed
-     */
-    public function getFCMIdentifiers()
-    {
-        return array_values($this->allIdentifiers);
-    }
-
-    /**
-     * Adds a device identifier to the FCM list
-     * @param string $identifier
-     */
-    public function addFCMIdentifier($identifier)
+    public function addIdentifier($identifier)
     {
         $this->allIdentifiers[$identifier] = $identifier;
     }
@@ -278,40 +216,43 @@ class AndroidMessage implements MessageInterface
     }
 
     /**
-     * Sets GCM options
+     * Set options
      * @param array $options
      */
-    public function setGCMOptions($options)
+    public function setOptions($options)
     {
-        $this->gcmOptions = $options;
+        $this->options = $options;
     }
 
     /**
-     * Returns GCM options
+     * Returns options
      *
      * @return array
      */
-    public function getGCMOptions()
+    public function getOptions()
     {
-        return $this->gcmOptions;
+        return $this->options;
     }
 
     /**
-     * Sets FCM options
-     * @param array $options
-     */
-    public function setFCMOptions($options)
-    {
-        $this->fcmOptions = $options;
-    }
-
-    /**
-     * Returns FCM options
+     * Get cloudMessagingService
      *
-     * @return array
+     * @return string
      */
-    public function getFCMOptions()
+    public function getCloudMessagingService()
     {
-        return $this->fcmOptions;
+        return $this->cloudMessagingService;
+    }
+
+    /**
+     * Set cloudMessagingService
+     *
+     * @param $cloudMessagingService
+     * @return $this
+     */
+    public function setCloudMessagingService($cloudMessagingService)
+    {
+        $this->cloudMessagingService = $cloudMessagingService;
+        return $this;
     }
 }
