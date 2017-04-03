@@ -3,71 +3,94 @@
 namespace RMS\PushNotificationsBundle\Service\OS;
 
 use Buzz\Client\Curl;
+use Buzz\Client\MultiCurl;
 use Buzz\Message\Response;
+use opwoco\Core\LogBundle\Logging\CustomChannelLogger;
 use RMS\PushNotificationsBundle\Exception\InvalidMessageTypeException;
 use RMS\PushNotificationsBundle\Message\AmazonMessage;
 use RMS\PushNotificationsBundle\Message\MessageInterface;
 use Buzz\Browser;
 use RMS\PushNotificationsBundle\Model\AccessToken;
+use RMS\PushNotificationsBundle\Service\Notifications;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
-class AndroidADMNotification implements OSNotificationServiceInterface {
+class AndroidADMNotification extends Notifications implements OSNotificationServiceInterface {
 
     /**
      * @var Browser
      */
-    private $browser;
+    protected $browser;
 
     /**
      * @var string
      */
-    private $scheme;
+    protected $scheme = 'https';
 
     /**
      * @var string
      */
-    private $host;
+    protected $host = 'api.amazon.com';
 
     /**
      * @var string
      */
-    private $clientId;
+    protected $clientId;
 
     /**
      * @var string
      */
-    private $clientSecret;
+    protected $clientSecret;
+
+    /**
+     * @var bool
+     */
+    protected $useMultiCurl;
+
+    /**
+     * @var CustomChannelLogger
+     */
+    protected $logger;
 
     /**
      * @var AccessToken
      */
-    private $accessToken;
+    protected $accessToken;
 
     /**
      * @var string
      */
-    private $accessTokenEndpoint;
+    protected $accessTokenEndpoint = 'auth/o2/token';
 
     /**
      * @var string
      */
-    private $messageEndpoint;
+    protected $messageEndpoint = 'messaging/registrations/%s/messages';
 
-    const SCOPE = 'messaging:push';
+    /**
+     * @var string
+     */
+    protected $scope = 'messaging:push';
 
-    const GRANT_TYPE = 'client_credentials';
+    /**
+     * @var string
+     */
+    protected $grantType = 'client_credentials';
 
-    public function __construct($scheme, $host, $clientId, $clientSecret, $accessTokenEndpoint, $messageEndpoint, $timeout, $logger) {
+    /**
+     * @var array
+     */
+    protected $responses = array();
+
+    public function __construct($clientId, $clientSecret, $useMultiCurl, $timeout, $logger) {
+        $this->clientId = $clientId;
+        $this->clientSecret = $clientSecret;
+        $this->useMultiCurl = $useMultiCurl;
+        $this->logger = $logger;
         $client = new Curl();
         $client->setTimeout($timeout);
         $this->browser = new Browser($client);
         $this->browser->getClient()->setVerifyPeer(false);
-        $this->scheme = $scheme;
-        $this->host = $host;
-        $this->clientId = $clientId;
-        $this->clientSecret = $clientSecret;
-        $this->accessTokenEndpoint = $accessTokenEndpoint;
-        $this->messageEndpoint = $messageEndpoint;
-        $this->logger = $logger;
+
     }
 
     /**
@@ -85,8 +108,8 @@ class AndroidADMNotification implements OSNotificationServiceInterface {
         $data = array(
             'client_id' => $this->clientId,    // The client ID assigned to you by the provider
             'client_secret' => $this->clientSecret,   // The client password assigned to you by the provider
-            'scope' => self::SCOPE,
-            'grant_type' => self::GRANT_TYPE
+            'scope' => $this->scope,
+            'grant_type' => $this->grantType
         );
 
         $uri = $this->getEndpointUri($this->accessTokenEndpoint);
@@ -99,19 +122,15 @@ class AndroidADMNotification implements OSNotificationServiceInterface {
 
     /**
      * @param MessageInterface $message
-     * @param $accessToken
-     * @param null $consolidationKey
-     * @param int $expiresAfter
-     * @param null $md5
-     * @return Response
+     * @return bool
      */
     public function send(MessageInterface $message)
     {
         if (!$message instanceof AmazonMessage) {
-            throw new InvalidMessageTypeException(sprintf("Message type '%s' not supported by Amazon", get_class($message)));
+            throw new InvalidMessageTypeException(sprintf("Message type '%s' not supported by Amazon Device Messaging", get_class($message)));
         }
 
-        if(!$this->getAccessToken() || !$this->getAccessToken()->getExpiresIn()) {
+        if(!$this->getAccessToken() || $this->getAccessToken()->isExpired()) {
             $accessTokenResponse = $this->sendAccessTokenRequest();
             $this->setAccessToken($accessTokenResponse);
         }
@@ -123,17 +142,50 @@ class AndroidADMNotification implements OSNotificationServiceInterface {
 
         $headers = array(
             'Content-Type' => 'application/json',
-            'Authorization' => sprintf('bearer %s', urlencode($accessToken))
+            'accept' => 'application/json',
+            'Authorization' => sprintf('%s %s', $accessToken->getType(), urlencode($accessToken->getToken()))
         );
 
         $data = $message->getMessageBody();
-        $endpoint = $this->getEndpointUri($this->getMessageEndpoint($message->getDeviceIdentifier()));
-        $uri = $this->getEndpointUri($endpoint);
-        $this->browser->post($uri, $headers, json_encode($data));
 
+
+        // Perform the calls (in parallel)
+        $this->responses = array();
+
+        foreach($message->getIdentifiers() as $identifier){
+            $uri = $this->getEndpointUri($this->getMessageEndpoint($identifier));
+            $this->responses[] = $this->browser->post($uri, $headers, json_encode($data));
+        }
+
+        // If we're using multiple concurrent connections via MultiCurl
+        // then we should flush all requests
+        if ($this->browser->getClient() instanceof MultiCurl) {
+            $this->browser->getClient()->flush();
+        }
+
+
+        // Determine success
         /** @var Response $response */
-        $response = $this->browser->getLastResponse();
-        return $response;
+        foreach ($this->responses as $response) {
+            if(SymfonyResponse::HTTP_OK != $response->getStatusCode()) {
+                switch($response->getStatusCode()) {
+                    case SymfonyResponse::HTTP_BAD_REQUEST:
+                    case SymfonyResponse::HTTP_UNAUTHORIZED:
+                    case SymfonyResponse::HTTP_REQUEST_ENTITY_TOO_LARGE:
+                    case SymfonyResponse::HTTP_TOO_MANY_REQUESTS:
+                        $message = json_decode($response->getContent(), true);
+                        $this->logger->error($message['reason'], $message);
+                        break;
+                    case SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR:
+                    case SymfonyResponse::HTTP_SERVICE_UNAVAILABLE:
+                        $this->logger->error($response->getStatusCode());
+                        break;
+
+                }
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -181,5 +233,13 @@ class AndroidADMNotification implements OSNotificationServiceInterface {
     public function getEndpointUri($endpoint) {
         $uri = sprintf('%s://%s/%s', $this->scheme, $this->host, $endpoint);
         return $uri;
+    }
+
+    /**
+     * @return Browser
+     */
+    public function getBrowser()
+    {
+        return $this->browser;
     }
 }
