@@ -33,11 +33,7 @@ class RMSPushNotificationsExtension extends Extension
         $this->kernelRootDir = $container->getParameterBag()->get("kernel.root_dir");
 
         $loader = new XmlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
-
         $loader->load('services.xml');
-
-        $ymlLoader = new YamlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
-        $ymlLoader->load('services.yml');
 
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
@@ -47,7 +43,6 @@ class RMSPushNotificationsExtension extends Extension
         if (isset($config["android"])) {
             $this->setAndroidConfig($config);
             $loader->load('android.xml');
-            $ymlLoader->load('amazon.yml');
         }
         if (isset($config["ios"])) {
             $this->setiOSConfig($config);
