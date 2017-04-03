@@ -3,7 +3,7 @@
     "type": "symfony-bundle",
     "version": "1.0.0",
     "description": "Push notifications/messages for mobile devices",
-    "keywords": ["push", "notification", "bundle", "gcm", "fcm", "c2dm", "ios", "apns", "blackberry", "mpns", "windowsphone"],
+    "keywords": ["push", "notification", "bundle", "android", "amazon", "adm", "gcm", "fcm", "c2dm", "ios", "apns", "blackberry", "mpns", "windowsphone"],
     "homepage": "https://github.com/richsage/RMSPushNotificationsBundle",
     "license": "MIT",
     "authors": [
@@ -16,6 +16,7 @@
     "require": {
         "php": ">=5.3.0",
         "kriswallsmith/buzz": "*",
+        "gedmo/doctrine-extensions": "2.4.*",
         "psr/log": "^1.0"
     },
     "require-dev": {

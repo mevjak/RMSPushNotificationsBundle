@@ -9,7 +9,7 @@ To use this bundle in your Symfony2 project add the following to your `composer.
     {
         "require": {
             // ...
-            "richsage/rms-push-notifications-bundle": "dev-master"
+            "opwoco/rms-push-notifications-bundle": "dev-master"
         }
     }
 
@@ -36,6 +36,9 @@ only be available if you provide configuration respectively for them.
     rms_push_notifications:
       android:
           timeout: 5 # Seconds to wait for connection timeout, default is 5
+          adm:
+              client_id: <amazon_device_messaging_client_id>
+              client_secret: <amazon_device_messaging_client_secret>
           c2dm:
               username: <string_android_c2dm_username>
               password: <string_android_c2dm_password>

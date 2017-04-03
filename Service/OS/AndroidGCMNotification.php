@@ -99,16 +99,13 @@ class AndroidGCMNotification implements OSNotificationServiceInterface
         if (!$message instanceof AndroidMessage) {
             throw new InvalidMessageTypeException(sprintf("Message type '%s' not supported by GCM", get_class($message)));
         }
-        if (!$message->isGCM()) {
-            throw new InvalidMessageTypeException("Non-GCM messages not supported by the Android GCM sender");
-        }
 
         $headers = array(
             "Authorization: key=" . $this->apiKey,
             "Content-Type: application/json",
         );
         $data = array_merge(
-            $message->getGCMOptions(),
+            $message->getOptions(),
             array("data" => $message->getData())
         );
 
@@ -118,14 +115,14 @@ class AndroidGCMNotification implements OSNotificationServiceInterface
 
         // Perform the calls (in parallel)
         $this->responses = array();
-        $gcmIdentifiers = $message->getGCMIdentifiers();
+        $identifiers = $message->getIdentifiers();
 
-        if (count($message->getGCMIdentifiers()) == 1) {
-            $data['to'] = $gcmIdentifiers[0];
+        if (count($identifiers) == 1) {
+            $data['to'] = $identifiers[0];
             $this->responses[] = $this->browser->post($this->apiURL, $headers, json_encode($data));
         } else {
             // Chunk number of registration IDs according to the maximum allowed by GCM
-            $chunks = array_chunk($message->getGCMIdentifiers(), $this->registrationIdMaxCount);
+            $chunks = array_chunk($identifiers, $this->registrationIdMaxCount);
 
             foreach ($chunks as $registrationIDs) {
                 $data['registration_ids'] = $registrationIDs;

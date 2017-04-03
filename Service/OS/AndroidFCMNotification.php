@@ -90,23 +90,20 @@ class AndroidFCMNotification implements OSNotificationServiceInterface
         if (!$message instanceof AndroidMessage) {
             throw new InvalidMessageTypeException(sprintf("Message type '%s' not supported by FCM", get_class($message)));
         }
-        if (!$message->isFCM()) {
-            throw new InvalidMessageTypeException("Non-FCM messages not supported by the Android FCM sender");
-        }
 
         $headers = array(
             "Authorization: key=" . $this->apiKey,
             "Content-Type: application/json",
         );
         $data = array_merge(
-            array("notification" => $message->getFCMOptions()),
+            array("notification" => $message->getOptions()),
             array("data" => $message->getData())
         );
 
         // Perform the calls (in parallel)
         $this->responses = array();
 
-        foreach($message->getFCMIdentifiers() as $identifier){
+        foreach($message->getIdentifiers() as $identifier){
             $data['to'] = $identifier;
             $data['content_available'] = true;
             $data['priority'] = 'high';

@@ -2,6 +2,7 @@
 
 namespace RMS\PushNotificationsBundle\DependencyInjection;
 
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension,
     Symfony\Component\DependencyInjection\ContainerBuilder,
     Symfony\Component\DependencyInjection\Loader\XmlFileLoader,
@@ -38,6 +39,7 @@ class RMSPushNotificationsExtension extends Extension
         $config = $this->processConfiguration($configuration, $configs);
 
         $this->setInitialParams();
+
         if (isset($config["android"])) {
             $this->setAndroidConfig($config);
             $loader->load('android.xml');
@@ -58,6 +60,7 @@ class RMSPushNotificationsExtension extends Extension
             $this->setWindowsphoneConfig($config);
             $loader->load('windowsphone.xml');
         }
+
     }
 
     /**
@@ -69,6 +72,7 @@ class RMSPushNotificationsExtension extends Extension
         $this->container->setParameter("rms_push_notifications.ios.enabled", false);
         $this->container->setParameter("rms_push_notifications.mac.enabled", false);
     }
+    
 
     /**
      * Sets Android config into container
@@ -85,6 +89,17 @@ class RMSPushNotificationsExtension extends Extension
         $password = $config["android"]["password"];
         $source = $config["android"]["source"];
         $timeout = $config["android"]["timeout"];
+
+        // ADM
+        $this->container->setParameter("rms_push_notifications.android.adm.enabled", true);
+
+        if (isset($config["android"]["adm"])) {
+            $clientId = $config["android"]["adm"]["client_id"];
+            $clientSecret = $config["android"]["adm"]["client_secret"];
+            $this->container->setParameter("rms_push_notifications.android.adm.client_id", $clientId);
+            $this->container->setParameter("rms_push_notifications.android.adm.client_secret", $clientSecret);
+        }
+
         if (isset($config["android"]["c2dm"])) {
             $username = $config["android"]["c2dm"]["username"];
             $password = $config["android"]["c2dm"]["password"];
@@ -116,6 +131,7 @@ class RMSPushNotificationsExtension extends Extension
             $this->container->setParameter("rms_push_notifications.android.fcm.api_key", $config["android"]["fcm"]["api_key"]);
             $this->container->setParameter("rms_push_notifications.android.fcm.use_multi_curl", $config["android"]["fcm"]["use_multi_curl"]);
         }
+
     }
 
     /**
