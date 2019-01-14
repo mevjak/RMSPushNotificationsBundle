@@ -11,8 +11,13 @@ use Buzz\Browser,
     Buzz\Client\Curl,
     Buzz\Client\MultiCurl;
 
+/**
+ * Class AndroidGCMNotification
+ * @package RMS\PushNotificationsBundle\Service\OS
+ */
 class AndroidGCMNotification implements OSNotificationServiceInterface
 {
+    const MAX_REGISTRATION_IDS = 1000;
 
     /**
      * Whether or not to use the dry run GCM
@@ -34,13 +39,6 @@ class AndroidGCMNotification implements OSNotificationServiceInterface
      * @var string
      */
     protected $apiKey;
-
-    /**
-     * Max registration count
-     *
-     * @var integer
-     */
-    protected $registrationIdMaxCount = 1000;
 
     /**
      * Browser object
@@ -99,13 +97,16 @@ class AndroidGCMNotification implements OSNotificationServiceInterface
         if (!$message instanceof AndroidMessage) {
             throw new InvalidMessageTypeException(sprintf("Message type '%s' not supported by GCM", get_class($message)));
         }
+        if (!$message->isGCM()) {
+            throw new InvalidMessageTypeException("Non-GCM messages not supported by the Android GCM sender");
+        }
 
         $headers = array(
             "Authorization: key=" . $this->apiKey,
             "Content-Type: application/json",
         );
         $data = array_merge(
-            $message->getOptions(),
+            $message->getGCMOptions(),
             array("data" => $message->getData())
         );
 
@@ -115,14 +116,14 @@ class AndroidGCMNotification implements OSNotificationServiceInterface
 
         // Perform the calls (in parallel)
         $this->responses = array();
-        $identifiers = $message->getIdentifiers();
+        $gcmIdentifiers = $message->getGCMIdentifiers();
 
-        if (count($identifiers) == 1) {
-            $data['to'] = $identifiers[0];
+        if (count($message->getGCMIdentifiers()) == 1) {
+            $data['to'] = $gcmIdentifiers[0];
             $this->responses[] = $this->browser->post($this->apiURL, $headers, json_encode($data));
         } else {
             // Chunk number of registration IDs according to the maximum allowed by GCM
-            $chunks = array_chunk($identifiers, $this->registrationIdMaxCount);
+            $chunks = array_chunk($message->getGCMIdentifiers(), self::MAX_REGISTRATION_IDS);
 
             foreach ($chunks as $registrationIDs) {
                 $data['registration_ids'] = $registrationIDs;
